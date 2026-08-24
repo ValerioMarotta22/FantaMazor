@@ -22,6 +22,10 @@ class LeagueMemberResponse(BaseModel):
     is_admin: bool
 
 
+class LeagueMemberUpdateRequest(BaseModel):
+    name: str
+
+
 class RosterPlayerResponse(BaseModel):
     player_id: int
     name: str

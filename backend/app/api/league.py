@@ -7,6 +7,7 @@ from app.db.models import LeagueMember, LeagueRoster, LeagueSettings
 from app.db.session import get_db
 from app.schemas.league import (
     LeagueMemberResponse,
+    LeagueMemberUpdateRequest,
     LeagueSettingsResponse,
     LeagueSettingsUpdateRequest,
     MemberRosterResponse,
@@ -43,6 +44,19 @@ def list_members(db: Session = Depends(get_db), _user: str = CurrentUser):
     if settings is None:
         return []
     return db.query(LeagueMember).filter_by(league_settings_id=settings.id).order_by(LeagueMember.id).all()
+
+
+@router.put("/members/{member_id}", response_model=LeagueMemberResponse)
+def update_member(
+    member_id: int, payload: LeagueMemberUpdateRequest, db: Session = Depends(get_db), _user: str = CurrentUser
+):
+    member = db.get(LeagueMember, member_id)
+    if member is None:
+        raise HTTPException(404, "member not found")
+    member.name = payload.name
+    db.commit()
+    db.refresh(member)
+    return member
 
 
 @router.get("/members/{member_id}/roster", response_model=MemberRosterResponse)
