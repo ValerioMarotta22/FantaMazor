@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.auction.live_engine import (
     AuctionEngineError,
+    delete_transaction,
     get_recommendation,
     get_session_state,
     record_transaction,
@@ -128,6 +129,19 @@ def list_transactions(session_id: int, db: Session = Depends(get_db), _user: str
         )
         for t in txns
     ]
+
+
+@router.delete("/sessions/{session_id}/transactions/{transaction_id}")
+def remove_transaction(
+    session_id: int, transaction_id: int, db: Session = Depends(get_db), _user: str = CurrentUser
+):
+    """Undo a mistakenly recorded sale -- frees the player and reverses the
+    buyer's budget/slot usage."""
+    try:
+        delete_transaction(db, session_id, transaction_id)
+    except AuctionEngineError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return {"ok": True}
 
 
 @router.post("/simulate", response_model=SimulationResponse)

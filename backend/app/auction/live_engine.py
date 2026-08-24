@@ -316,6 +316,29 @@ def record_transaction(db: Session, session_id: int, player_id: int, buyer_membe
     return txn
 
 
+def delete_transaction(db: Session, session_id: int, transaction_id: int) -> None:
+    """Undo a mistakenly recorded sale (§60's opposite failure mode:
+    correcting a data-entry error must never leave the roster/budget state
+    inconsistent). Removes both the transaction log entry and the matching
+    roster row, so the player becomes available again and the buyer's
+    budget/slots are freed up on the very next read of `get_roster_state`
+    (which is always computed live from `league_rosters`, never cached)."""
+
+    txn = db.get(AuctionTransaction, transaction_id)
+    if txn is None or txn.auction_session_id != session_id:
+        raise AuctionEngineError(f"transaction {transaction_id} not found in session {session_id}")
+
+    roster_row = (
+        db.query(LeagueRoster)
+        .filter_by(auction_session_id=session_id, player_id=txn.player_id)
+        .one_or_none()
+    )
+    if roster_row is not None:
+        db.delete(roster_row)
+    db.delete(txn)
+    db.commit()
+
+
 def get_session_state(db: Session, session_id: int) -> dict:
     session = db.get(AuctionSession, session_id)
     if session is None:
