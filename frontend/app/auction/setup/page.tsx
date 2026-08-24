@@ -33,6 +33,22 @@ export default function AuctionSetupPage() {
     onError: (e) => setError(e instanceof ApiError ? e.message : String(e)),
   });
 
+  const deleteSession = useMutation({
+    mutationFn: (sessionId: number) => api.delete(`/api/auction/sessions/${sessionId}`),
+    onSuccess: () => {
+      setError(null);
+      queryClient.invalidateQueries({ queryKey: ["auction-sessions"] });
+    },
+    onError: (e) => setError(e instanceof ApiError ? e.message : String(e)),
+  });
+
+  function handleDelete(s: AuctionSession) {
+    const ok = window.confirm(
+      `Eliminare definitivamente la sessione "${s.name}"?\n\nTutte le transazioni al suo interno verranno cancellate. I giocatori e il FantaScore non vengono toccati. Questa azione non si può annullare.`
+    );
+    if (ok) deleteSession.mutate(s.id);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -88,9 +104,18 @@ export default function AuctionSetupPage() {
                 <span className="font-medium">{s.name}</span>{" "}
                 <span className="badge ml-2 bg-panel2 text-muted">{s.status}</span>
               </div>
-              <Link href={`/auction/live?session=${s.id}`} className="text-accent hover:underline">
-                Apri asta live →
-              </Link>
+              <div className="flex items-center gap-4">
+                <Link href={`/auction/live?session=${s.id}`} className="text-accent hover:underline">
+                  Apri asta live →
+                </Link>
+                <button
+                  onClick={() => handleDelete(s)}
+                  disabled={deleteSession.isPending}
+                  className="text-xs text-danger hover:underline disabled:opacity-40"
+                >
+                  Elimina
+                </button>
+              </div>
             </div>
           ))}
           {!sessions?.length && <p className="py-4 text-sm text-muted">Nessuna sessione ancora creata.</p>}

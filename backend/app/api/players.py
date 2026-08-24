@@ -34,7 +34,9 @@ def list_players(
         query = query.filter(Player.role == role.upper())
     if search:
         query = query.filter(Player.normalized_name.ilike(f"%{search.lower()}%"))
-    players = query.order_by(Player.name).limit(500).all()
+    # A full Serie A listone is ~500-550 players; 2000 leaves headroom
+    # without turning into an unbounded response.
+    players = query.order_by(Player.name).limit(2000).all()
     return [_to_player_response(p) for p in players]
 
 

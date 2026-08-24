@@ -12,7 +12,7 @@ from app.auction.live_engine import (
 )
 from app.auction.simulator import SimulationTarget, run_auction_simulation
 from app.core.security import CurrentUser
-from app.db.models import AuctionSession, AuctionTransaction, LeagueSettings
+from app.db.models import AuctionSession, AuctionTransaction, LeagueRoster, LeagueSettings
 from app.db.session import get_db
 from app.schemas.auction import (
     BudgetConstraintResponse,
@@ -54,6 +54,21 @@ def get_session(session_id: int, db: Session = Depends(get_db), _user: str = Cur
     if session is None:
         raise HTTPException(404, "session not found")
     return session
+
+
+@router.delete("/sessions/{session_id}")
+def delete_session(session_id: int, db: Session = Depends(get_db), _user: str = CurrentUser):
+    """Wipes a whole auction session -- every transaction and roster entry
+    it produced -- so test/practice runs can be thrown away cleanly.
+    Players, FantaScore and league settings are never touched."""
+    session = db.get(AuctionSession, session_id)
+    if session is None:
+        raise HTTPException(404, "session not found")
+    db.query(AuctionTransaction).filter_by(auction_session_id=session_id).delete()
+    db.query(LeagueRoster).filter_by(auction_session_id=session_id).delete()
+    db.delete(session)
+    db.commit()
+    return {"ok": True}
 
 
 @router.get("/sessions/{session_id}/state", response_model=SessionStateResponse)
