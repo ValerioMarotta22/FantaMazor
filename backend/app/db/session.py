@@ -7,7 +7,11 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-engine = create_engine(settings.database_url, pool_pre_ping=True, future=True)
+# SQLite (local single-user mode, no Postgres/Docker required) needs
+# check_same_thread=False since FastAPI's sync routes run in a threadpool.
+_connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+
+engine = create_engine(settings.database_url, pool_pre_ping=True, future=True, connect_args=_connect_args)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
 

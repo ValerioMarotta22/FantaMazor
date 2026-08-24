@@ -87,9 +87,21 @@ Deferred to MVP3: trade engine, squad analytics, backtesting, model training, na
 
 ## Setup
 
+### Quick start: local single-user mode (no Docker/Postgres/Redis)
+
+For running FantaMazor for yourself on one machine, the simplest path skips Postgres and Redis entirely: `DATABASE_URL=sqlite:///./fantamazor.db` creates its schema automatically on first startup (no Alembic needed), and if Redis isn't reachable the app transparently falls back to an in-memory cache (`app/core/cache.py`). This is what `backend/.env` is set to by default in this repo.
+
+Once the backend venv (`backend/.venv`) and frontend deps (`frontend/node_modules`) are installed once (see below), everyday startup is just:
+
+```bash
+avvia-fantamazor.bat
+```
+
+at the repo root — it opens the backend and frontend each in their own window and opens http://localhost:3000 in your browser. Closing those two windows stops the app; running the script again starts it fresh, no reinstalling anything.
+
 ### Backend
 
-Requires Python 3.11+ and a PostgreSQL 16 + Redis 7 instance (via `docker-compose.yml`, or your own).
+Requires Python 3.11+. For the full setup with real Postgres + Redis (recommended once you're running a real league with other people, not just solo):
 
 ```bash
 docker compose up -d          # postgres + redis
@@ -97,10 +109,12 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate        # Windows; use `source .venv/bin/activate` on macOS/Linux
 pip install -r requirements.txt
-copy .env.example .env        # then edit ADMIN_PASSWORD, SESSION_SECRET_KEY
+copy .env.example .env        # then edit DATABASE_URL/ADMIN_PASSWORD/SESSION_SECRET_KEY
 alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
+
+For local single-user mode instead, skip `docker compose` and `alembic upgrade head` — just set `DATABASE_URL=sqlite:///./fantamazor.db` in `backend/.env` and start uvicorn; the schema is created for you.
 
 On first startup the app seeds: the single admin user (from `ADMIN_USERNAME`/`ADMIN_PASSWORD`), the target league's default `LeagueSettings` (10 participants, 500 FM, 3/8/8/6 — see §1), its 10 `LeagueMembers`, and the known data-source rows.
 

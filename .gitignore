@@ -28,3 +28,6 @@ Thumbs.db
 # Claude Code local session state (launch.json itself is fine to keep)
 .claude/scheduled_tasks.lock
 frontend/dev.db
+
+# Local single-user SQLite database (your own league data, not shared code)
+backend/fantamazor.db
