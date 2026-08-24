@@ -9,14 +9,25 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    credentials: "include",
-    headers: {
-      ...(options.body && !(options.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
-      ...options.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      credentials: "include",
+      headers: {
+        ...(options.body && !(options.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
+        ...options.headers,
+      },
+    });
+  } catch {
+    // The backend process isn't reachable at all (not started, crashed,
+    // wrong port...) -- a raw "Failed to fetch" means nothing to most
+    // people, so translate it into something actionable.
+    throw new ApiError(
+      0,
+      "Impossibile contattare il server FantaMazor. Controlla che sia avviato (avvia-fantamazor.bat) e riprova."
+    );
+  }
 
   if (!res.ok) {
     let detail = res.statusText;
